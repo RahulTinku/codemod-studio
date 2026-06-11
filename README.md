@@ -2,7 +2,7 @@
 
 > Write, test and preview jscodeshift codemods live in the browser.
 
-**[Live demo →](https://codemod-studio.vercel.app)** _(deploy to Vercel to activate)_
+**[Live demo →](https://codemod-studio.vercel.app)**
 
 ---
 
