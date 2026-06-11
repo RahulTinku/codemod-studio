@@ -1,0 +1,5 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+body { background: #080c18; color: #cbd5e1; font-family: system-ui, sans-serif; }
+button { cursor: pointer; }
+a { color: inherit; }
