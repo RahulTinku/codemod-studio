@@ -85,7 +85,7 @@ One-click deploy to Vercel (no environment variables needed — fully static):
 ## Roadmap
 
 - [ ] AST explorer panel (visual tree view)
-- [ ] Shareable URL (encode source + transform in URL hash)
+- [x] Shareable URL — encode source + transform in URL hash, copy with ⬡ share button
 - [ ] Test runner (define before/after pairs, run all)
 - [ ] Export as npm package scaffold
 - [ ] TypeScript support in transforms (babel-register equivalent)
