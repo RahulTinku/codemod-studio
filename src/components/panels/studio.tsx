@@ -8,6 +8,7 @@ import { EXAMPLES } from "@/lib/examples";
 import { AstExplorer } from "@/components/ast/ast-explorer";
 import { TestRunner } from "@/components/panels/test-runner";
 import type { TestCase } from "@/components/panels/test-runner";
+import { ExportModal } from "@/components/panels/export-modal";
 
 // Monaco must be loaded client-side only — no SSR
 const CodeEditor = dynamic(
@@ -61,6 +62,7 @@ export function Studio() {
   const [astData, setAstData] = useState<{ ast: AstNode | null; error: string | null }>({ ast: null, error: null });
   const [mode, setMode] = useState<"editor" | "tests">("editor");
   const [tests, setTests] = useState<TestCase[]>([]);
+  const [showExport, setShowExport] = useState(false);
   // Track whether current state came from a shared hash (to skip example highlight)
   const fromHash = useRef(typeof window !== "undefined" && !!decodeHash(window.location.hash));
 
@@ -204,6 +206,18 @@ export function Studio() {
             </button>
           ))}
 
+          {/* Export button */}
+          <button
+            onClick={() => setShowExport(true)}
+            style={{
+              padding: "0.25rem 0.8rem", fontSize: "0.72rem", fontFamily: "monospace",
+              border: "1px solid #1e2732", background: "transparent", color: "#64748b",
+              cursor: "pointer", borderRadius: 3,
+            }}
+          >
+            ↓ export
+          </button>
+
           {/* Share button */}
           <button
             onClick={copyShareLink}
@@ -300,6 +314,11 @@ export function Studio() {
           )}
         </div>
       </div>}
+
+      {/* Export modal */}
+      {showExport && (
+        <ExportModal transform={transform} onClose={() => setShowExport(false)} />
+      )}
 
       {/* Footer */}
       <div style={{
