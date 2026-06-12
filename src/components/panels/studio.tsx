@@ -6,6 +6,8 @@ import { runTransform, parseAST } from "@/lib/transform-engine";
 import type { AstNode } from "@/lib/transform-engine";
 import { EXAMPLES } from "@/lib/examples";
 import { AstExplorer } from "@/components/ast/ast-explorer";
+import { TestRunner } from "@/components/panels/test-runner";
+import type { TestCase } from "@/components/panels/test-runner";
 
 // Monaco must be loaded client-side only — no SSR
 const CodeEditor = dynamic(
@@ -57,6 +59,8 @@ export function Studio() {
   const [copied, setCopied] = useState(false);
   const [rightPane, setRightPane] = useState<"output" | "ast">("output");
   const [astData, setAstData] = useState<{ ast: AstNode | null; error: string | null }>({ ast: null, error: null });
+  const [mode, setMode] = useState<"editor" | "tests">("editor");
+  const [tests, setTests] = useState<TestCase[]>([]);
   // Track whether current state came from a shared hash (to skip example highlight)
   const fromHash = useRef(typeof window !== "undefined" && !!decodeHash(window.location.hash));
 
@@ -117,6 +121,23 @@ export function Studio() {
         <span style={{ fontFamily: "monospace", fontSize: "0.85rem", color: "#00d4ff", fontWeight: 700 }}>
           codemod-studio
         </span>
+        <span style={{ color: "#1e2732" }}>│</span>
+        {/* Mode toggle */}
+        {(["editor", "tests"] as const).map((m) => (
+          <button
+            key={m}
+            onClick={() => setMode(m)}
+            style={{
+              padding: "0.25rem 0.7rem", fontSize: "0.72rem", fontFamily: "monospace",
+              border: `1px solid ${mode === m ? "#00d4ff" : "#1e2732"}`,
+              background: mode === m ? "rgba(0,212,255,0.08)" : "transparent",
+              color: mode === m ? "#00d4ff" : "#64748b",
+              cursor: "pointer", borderRadius: 3,
+            }}
+          >
+            {m === "editor" ? "Editor" : "Tests"}
+          </button>
+        ))}
         <span style={{ color: "#1e2732" }}>│</span>
         <span style={{ fontSize: "0.72rem", color: "#64748b", fontFamily: "monospace" }}>Examples:</span>
         {EXAMPLES.map((ex) => (
@@ -204,8 +225,25 @@ export function Studio() {
         </div>
       </div>
 
+      {/* Tests mode */}
+      {mode === "tests" && (
+        <div style={{ flex: 1, display: "grid", gridTemplateColumns: "1fr 1fr", overflow: "hidden" }}>
+          <div style={{ borderRight: "1px solid #1e2732", overflow: "hidden" }}>
+            <CodeEditor
+              label="Transform (jscodeshift)"
+              value={transform}
+              onChange={setTransform}
+              language="javascript"
+            />
+          </div>
+          <div style={{ overflow: "hidden" }}>
+            <TestRunner transform={transform} tests={tests} onTestsChange={setTests} />
+          </div>
+        </div>
+      )}
+
       {/* Three-pane editor */}
-      <div style={{ flex: 1, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", overflow: "hidden" }}>
+      {mode === "editor" && <div style={{ flex: 1, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", overflow: "hidden" }}>
         {/* Source */}
         <div style={{ borderRight: "1px solid #1e2732", overflow: "hidden" }}>
           <CodeEditor
@@ -261,7 +299,7 @@ export function Studio() {
             </div>
           )}
         </div>
-      </div>
+      </div>}
 
       {/* Footer */}
       <div style={{
