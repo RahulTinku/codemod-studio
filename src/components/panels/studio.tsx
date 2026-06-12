@@ -2,8 +2,10 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import dynamic from "next/dynamic";
-import { runTransform } from "@/lib/transform-engine";
+import { runTransform, parseAST } from "@/lib/transform-engine";
+import type { AstNode } from "@/lib/transform-engine";
 import { EXAMPLES } from "@/lib/examples";
+import { AstExplorer } from "@/components/ast/ast-explorer";
 
 // Monaco must be loaded client-side only — no SSR
 const CodeEditor = dynamic(
@@ -53,6 +55,8 @@ export function Studio() {
   const [unchanged, setUnchanged] = useState(false);
   const [activeExample, setActiveExample] = useState(EXAMPLES[0].id);
   const [copied, setCopied] = useState(false);
+  const [rightPane, setRightPane] = useState<"output" | "ast">("output");
+  const [astData, setAstData] = useState<{ ast: AstNode | null; error: string | null }>({ ast: null, error: null });
   // Track whether current state came from a shared hash (to skip example highlight)
   const fromHash = useRef(typeof window !== "undefined" && !!decodeHash(window.location.hash));
 
@@ -71,14 +75,18 @@ export function Studio() {
   // Run on mount
   useEffect(() => { runCode(); }, []);
 
-  // Auto-run on change (debounced) + update URL hash
+  // Auto-run on change (debounced) + update URL hash + refresh AST
   useEffect(() => {
     const t = setTimeout(() => {
       runCode();
       window.location.hash = encodeHash(source, transform);
+      if (rightPane === "ast") {
+        const result = parseAST(source);
+        setAstData(result.ok ? { ast: result.ast, error: null } : { ast: null, error: result.error });
+      }
     }, 400);
     return () => clearTimeout(t);
-  }, [source, transform]);
+  }, [source, transform, rightPane]);
 
   const loadExample = (id: string) => {
     const ex = EXAMPLES.find((e) => e.id === id);
@@ -149,6 +157,32 @@ export function Studio() {
             </span>
           )}
 
+          {/* AST toggle */}
+          {(["output", "ast"] as const).map((pane) => (
+            <button
+              key={pane}
+              onClick={() => {
+                setRightPane(pane);
+                if (pane === "ast") {
+                  const result = parseAST(source);
+                  setAstData(result.ok ? { ast: result.ast, error: null } : { ast: null, error: result.error });
+                }
+              }}
+              style={{
+                padding: "0.25rem 0.7rem",
+                fontSize: "0.72rem",
+                fontFamily: "monospace",
+                border: `1px solid ${rightPane === pane ? "#00d4ff" : "#1e2732"}`,
+                background: rightPane === pane ? "rgba(0,212,255,0.08)" : "transparent",
+                color: rightPane === pane ? "#00d4ff" : "#64748b",
+                cursor: "pointer",
+                borderRadius: 3,
+              }}
+            >
+              {pane === "output" ? "Output" : "AST"}
+            </button>
+          ))}
+
           {/* Share button */}
           <button
             onClick={copyShareLink}
@@ -192,20 +226,39 @@ export function Studio() {
           />
         </div>
 
-        {/* Output */}
+        {/* Output / AST */}
         <div style={{ overflow: "hidden", position: "relative" }}>
-          <CodeEditor
-            label={error ? "Error" : "Output"}
-            value={error ? `// Error:\n// ${error.replace(/\n/g, "\n// ")}` : output}
-            language="typescript"
-            readOnly
-          />
-          {error && (
-            <div style={{
-              position: "absolute", top: 30, left: 0, right: 0, bottom: 0,
-              background: "rgba(239,68,68,0.04)",
-              pointerEvents: "none",
-            }} />
+          {rightPane === "output" ? (
+            <>
+              <CodeEditor
+                label={error ? "Error" : "Output"}
+                value={error ? `// Error:\n// ${error.replace(/\n/g, "\n// ")}` : output}
+                language="typescript"
+                readOnly
+              />
+              {error && (
+                <div style={{
+                  position: "absolute", top: 30, left: 0, right: 0, bottom: 0,
+                  background: "rgba(239,68,68,0.04)",
+                  pointerEvents: "none",
+                }} />
+              )}
+            </>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+              <div style={{
+                padding: "0.4rem 0.8rem",
+                fontSize: "0.72rem", fontFamily: "monospace",
+                letterSpacing: "0.1em", textTransform: "uppercase" as const,
+                color: "#64748b", background: "#0d1117",
+                borderBottom: "1px solid #1e2732", flexShrink: 0,
+              }}>
+                AST Explorer
+              </div>
+              <div style={{ flex: 1, overflow: "hidden" }}>
+                <AstExplorer ast={astData.ast} error={astData.error} />
+              </div>
+            </div>
           )}
         </div>
       </div>
