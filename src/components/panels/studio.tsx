@@ -9,6 +9,7 @@ import { AstExplorer } from "@/components/ast/ast-explorer";
 import { TestRunner } from "@/components/panels/test-runner";
 import type { TestCase } from "@/components/panels/test-runner";
 import { ExportModal } from "@/components/panels/export-modal";
+import { transpileTS } from "@/lib/ts-transpile";
 
 // Monaco must be loaded client-side only — no SSR
 const CodeEditor = dynamic(
@@ -63,11 +64,22 @@ export function Studio() {
   const [mode, setMode] = useState<"editor" | "tests">("editor");
   const [tests, setTests] = useState<TestCase[]>([]);
   const [showExport, setShowExport] = useState(false);
+  const [transformLang, setTransformLang] = useState<"js" | "ts">("js");
   // Track whether current state came from a shared hash (to skip example highlight)
   const fromHash = useRef(typeof window !== "undefined" && !!decodeHash(window.location.hash));
 
-  const runCode = useCallback(() => {
-    const result = runTransform(source, transform);
+  const runCode = useCallback(async () => {
+    let codeToRun = transform;
+    if (transformLang === "ts") {
+      const transpiled = await transpileTS(transform);
+      if (!transpiled.ok) {
+        setError(`TS error: ${transpiled.error}`);
+        setOutput("");
+        return;
+      }
+      codeToRun = transpiled.code;
+    }
+    const result = runTransform(source, codeToRun);
     if (result.ok) {
       setOutput(result.output);
       setUnchanged(result.unchanged);
@@ -76,7 +88,7 @@ export function Studio() {
       setError(result.error);
       setOutput("");
     }
-  }, [source, transform]);
+  }, [source, transform, transformLang]);
 
   // Run on mount
   useEffect(() => { runCode(); }, []);
@@ -206,6 +218,24 @@ export function Studio() {
             </button>
           ))}
 
+          {/* JS / TS toggle */}
+          {(["js", "ts"] as const).map((lang) => (
+            <button
+              key={lang}
+              onClick={() => setTransformLang(lang)}
+              title={lang === "ts" ? "TypeScript transforms (types stripped via sucrase)" : "JavaScript transforms"}
+              style={{
+                padding: "0.2rem 0.6rem", fontSize: "0.72rem", fontFamily: "monospace",
+                border: `1px solid ${transformLang === lang ? "#00d4ff" : "#1e2732"}`,
+                background: transformLang === lang ? "rgba(0,212,255,0.08)" : "transparent",
+                color: transformLang === lang ? "#00d4ff" : "#64748b",
+                cursor: "pointer", borderRadius: 3,
+              }}
+            >
+              {lang.toUpperCase()}
+            </button>
+          ))}
+
           {/* Export button */}
           <button
             onClick={() => setShowExport(true)}
@@ -271,10 +301,10 @@ export function Studio() {
         {/* Transform */}
         <div style={{ borderRight: "1px solid #1e2732", overflow: "hidden" }}>
           <CodeEditor
-            label="Transform (jscodeshift)"
+            label={`Transform (jscodeshift${transformLang === "ts" ? " · TypeScript" : ""})`}
             value={transform}
             onChange={setTransform}
-            language="javascript"
+            language={transformLang === "ts" ? "typescript" : "javascript"}
           />
         </div>
 

@@ -84,11 +84,11 @@ One-click deploy to Vercel (no environment variables needed — fully static):
 
 ## Roadmap
 
-- [ ] AST explorer panel (visual tree view)
+- [x] AST explorer panel — Output/AST toggle, collapsible tree with colour coding
 - [x] Shareable URL — encode source + transform in URL hash, copy with ⬡ share button
-- [ ] Test runner (define before/after pairs, run all)
-- [ ] Export as npm package scaffold
-- [ ] TypeScript support in transforms (babel-register equivalent)
+- [x] Test runner — define before/after pairs, run all, diff on failure
+- [x] Export as npm package scaffold — browse + download generated files
+- [x] TypeScript support in transforms — JS/TS toggle, sucrase strips types before eval
 
 ## License
 
